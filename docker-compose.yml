@@ -37,25 +37,40 @@ phpfpm1:
   environment:
    - EZ_KICKSTART
    - EZ_KICKSTART_FROM_TEMPLATE
-   - EZ_ENVIRONMENT
    - EZ_MAILER_TRANSPORT
    - EZ_MAILER_HOST
    - EZ_MAILER_USER
    - EZ_MAILER_PASSWORD
+   - SYMFONY_ENV
    - MYSQL_PASSWORD
 
 web1:
-  image: ezsystems/web
+  image: nginx
   links:
    - phpfpm1:php_fpm
   volumes_from:
    - ezpublishvol
+  volumes:
+   - ./volumes/ezpublish/doc/nginx/ez-host.template:/etc/nginx/conf.d/ez-host.template
+   - ./volumes/ezpublish/doc/nginx/ez_params.d:/etc/nginx/ez_params.d
   ports:
    - "8080:80"
   environment:
-   - EZ_ENVIRONMENT
+   - WEB_HOST=foobar.com
+   - WEB_HOST_ALIAS=www.foobar.com
+   - WEB_PORT=80
+   - WEB_BASEDIR=/var/www
+   - NGINX_CLIENT_MAX_BODY_SIZE=20m
+   - NGINX_FASTCGI_PASS=php_fpm:9000
+   - NGINX_FASTCGI_READ_TIMEOUT=190s
+   - NGINX_EZ_PROD_REWRITE_PARAMS=include ez_params.d/ez_prod_rewrite_params;
+   - SYMFONY_ENV
+   - SYMFONY_DEBUG=0
+   - SYMFONY_HTTP_CACHE=1
+   - SYMFONY_TRUSTED_PROXIES=
    - VARNISH_ENABLED
    - DOCKER0NET
+  command: /bin/bash -c "apt-get update && apt-get install -y gettext-base && envsubst < /etc/nginx/conf.d/ez-host.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
 #
 #varnish:
